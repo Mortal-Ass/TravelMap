@@ -21,6 +21,22 @@ docker compose --env-file deploy/production.env logs --tail 80 api web
 API 启动时按编号执行 database/migrations，使用数据库锁避免并行升级，每个文件在事务中提交。已存在的版本会跳过。首次部署创建独立数据卷，原本机开发数据库的数据需通过备份迁移。更新前备份数据库，保留此前部署的镜像和配置，重新构建并启动。API 健康检查访问 /api/health 并查询数据库。检查容器状态和同源 HTTPS 接口，也应测试登录、邀请和位置 WebSocket。日志使用 Docker 的大小限制及轮转。迁移失败查看 API 日志并处理失败原因。停止服务可用 docker compose --env-file deploy/production.env stop。
 
 ## 备份与恢复
+
+### 复用已有数据库卷并跳过启动迁移
+
+仅用于与当前应用版本结构兼容的 PostgreSQL 17 数据库。先查看原数据库容器挂载到数据目录的卷名，将其填入本地部署环境文件的 `TRAVELMAP_EXISTING_VOLUME`，并保留原 Compose 项目名、数据库凭据和服务端 `AMAP_WEB_SERVICE_KEY`。同一卷同一时间只能由一个 PostgreSQL 实例使用。
+
+```powershell
+docker inspect --format '{{range .Mounts}}{{if eq .Destination "/var/lib/postgresql/data"}}{{.Name}}{{end}}{{end}}' travelmap-acceptance-db-1
+docker compose -p travelmap-acceptance --env-file deploy/production.env -f compose.yaml -f compose.recovery.yaml config --quiet
+```
+
+经确认后，用同一组参数执行 `up --build -d --wait`。覆盖文件要求指定的卷已经存在，拼错卷名时 Compose 会报错；API 直接启动。常规首次部署仍使用基础 Compose 文件。独立保存加密备份，以便原磁盘损坏时恢复。
+
+### 固定体验地址
+
+有自己的域名时，可在 Cloudflare 创建命名隧道，为 Web 服务添加固定子域名的 Published application 路由。若连接器与 Web 在同一 Docker 网络，可为 Caddy 设置 `SITE_ADDRESS=http://:80` 并将隧道源站设为 `http://web:80`，公网使用 HTTPS。仅在采用该拓扑时切换站点地址。连接器设置自动重启，令牌保存在部署机。电脑休眠时站点会离线；需要全天访问可将应用部署在常开服务器。详见 [Cloudflare 命名隧道指南](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/get-started/create-remote-tunnel/)。
+
 ```powershell
 $dbContainer = docker compose --env-file deploy/production.env ps -q db
 ./deploy/backup.ps1 -Container $dbContainer -OutputFile ./travelmap-backup.dump

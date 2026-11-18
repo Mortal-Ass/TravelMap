@@ -1,0 +1,8 @@
+services:
+  api:
+    command: ["node", "apps/api/dist/src/main.js"]
+
+volumes:
+  data:
+    external: true
+    name: ${TRAVELMAP_EXISTING_VOLUME:?Set the verified existing PostgreSQL volume name}
