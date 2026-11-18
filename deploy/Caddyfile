@@ -12,6 +12,12 @@
  }
  handle /api/* {
   header Cache-Control no-store
+  @publicSocket {
+   path /api/locations/* /api/sync/*
+   header Upgrade websocket
+   header Origin https://{$PUBLIC_TRAVELMAP_HOST:localhost}
+  }
+  request_header @publicSocket Host {$PUBLIC_TRAVELMAP_HOST:localhost}
   reverse_proxy api:3001
  }
  handle {

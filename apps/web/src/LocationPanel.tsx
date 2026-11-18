@@ -9,7 +9,8 @@ export function LocationPanel({trip,csrf,user,map,sync}:{trip:string;csrf:string
  const [members,setMembers]=useState<Member[]>([]),[all,setAll]=useState(true),[audience,setAudience]=useState<string[]>([]);
  const [minutes,setMinutes]=useState(15),[own,setOwn]=useState<string|null>(null),[rows,setRows]=useState<Location[]>([]);
  const [connected,setConnected]=useState(false),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
- const socket=useRef<WebSocket|null>(null),watch=useRef<number|null>(null),active=useRef<string|null>(null),mounted=useRef(false);
+ const [connectionMessage,setConnectionMessage]=useState('正在连接位置服务…');
+ const watch=useRef<number|null>(null),active=useRef<string|null>(null),mounted=useRef(false);
  const expiry=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
  const path='trips/'+trip+'/location';
  function clearWatch(){
@@ -29,19 +30,31 @@ export function LocationPanel({trip,csrf,user,map,sync}:{trip:string;csrf:string
  useEffect(()=>{
   mounted.current=true;
   let closed=false,timer:ReturnType<typeof setTimeout>;
-  function connect(){
-   const ws=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+'/api/locations/'+trip);
-   socket.current=ws;
-   ws.onmessage=e=>{
+  let controller:AbortController;
+  async function refresh(){
+   controller=new AbortController();
+   const timeout=setTimeout(()=>controller.abort(),10000);
+   const grantAtRequest=active.current;
+   try{
+    const response=await fetch('/api/'+path,{cache:'no-store',signal:controller.signal});
+    const data=await readApiResponse(response);
     if(closed)return;
-    const data=JSON.parse(e.data);
-    setConnected(true);setOwn(data.own);setRows(data.locations);
-    if(active.current&&data.own!==active.current)clearWatch();
-   };
-   ws.onclose=e=>{if(closed)return;setConnected(false);setRows([]);if(e.code===1008){clearWatch();setOwn(null);return}timer=setTimeout(connect,2200)};
+    if(!Array.isArray(data.locations))throw new Error('位置服务返回异常');
+    setConnected(true);setRows(data.locations);
+    if(active.current===grantAtRequest){
+     setOwn(data.own);
+     if(active.current&&data.own!==active.current)clearWatch();
+    }
+   }catch(error){
+    if(closed)return;
+    setConnected(false);setRows([]);
+    setConnectionMessage('暂时无法连接位置服务，正在重试。'+(error as Error).message);
+   }
+   finally{clearTimeout(timeout)}
+   if(!closed)timer=setTimeout(refresh,3000);
   }
-  connect();
-  return()=>{closed=true;mounted.current=false;clearTimeout(timer);const grant=active.current;clearWatch();socket.current?.close();if(grant)void write(path,csrf,{action:'stop',grant}).catch(()=>{})};
+  void refresh();
+  return()=>{closed=true;mounted.current=false;controller.abort();clearTimeout(timer);const grant=active.current;clearWatch();if(grant)void write(path,csrf,{action:'stop',grant}).catch(()=>{})};
  },[trip,csrf]);
  useEffect(()=>{
   if(!map)return;
@@ -66,10 +79,9 @@ export function LocationPanel({trip,csrf,user,map,sync}:{trip:string;csrf:string
    if(result.expires)expiry.current=setTimeout(()=>{clearWatch();setOwn(null);setMessage('位置共享已到期')},Math.max(0,Date.parse(result.expires)-Date.now()));
    watch.current=navigator.geolocation.watchPosition(p=>{
     if(active.current!==result.grant)return;
-    if(socket.current?.readyState===WebSocket.OPEN){
-     socket.current.send(JSON.stringify({grant:result.grant,lat:p.coords.latitude,lon:p.coords.longitude,accuracy:p.coords.accuracy,time:p.timestamp}));
-     setMessage('定位中');
-    }
+    void write(path,csrf,{action:'sample',grant:result.grant,lat:p.coords.latitude,lon:p.coords.longitude,accuracy:p.coords.accuracy,time:p.timestamp})
+     .then(reply=>{if(active.current===result.grant&&reply.accepted)setMessage('位置已更新')})
+     .catch(()=>{if(active.current===result.grant)setMessage('位置上报失败，请检查网络')});
    },err=>{
     if(active.current!==result.grant)return;
     if(err.code===1){void stop(result.grant).then(()=>setMessage('定位权限被拒绝或撤销，已停止定位'))}
@@ -83,6 +95,6 @@ export function LocationPanel({trip,csrf,user,map,sync}:{trip:string;csrf:string
  {!all&&members.map(m=><label key={m.id}><input style={{width:'auto',display:'inline'}} type="checkbox" checked={audience.includes(m.id)} onChange={e=>setAudience(old=>e.target.checked?[...old,m.id]:old.filter(x=>x!==m.id))}/>{m.nickname}</label>)}
  <label>共享时长<select value={minutes} onChange={e=>setMinutes(Number(e.target.value))}><option value={15}>15 分钟</option><option value={60}>1 小时</option><option value={0}>直到手动停止</option></select></label>
  <button disabled={!connected||(!all&&!audience.length)} onClick={start}>开启位置共享</button></fieldset>}
- <p aria-live="polite">{connected?message:'位置服务连接中…'}</p>
+ <p aria-live="polite">{connected?message:connectionMessage}</p>
  {rows.map(r=><p key={r.id}><button onClick={()=>map?.setView([r.lat,r.lon],16)}>{r.name}</button> {r.online?'在线':'离线'} · {Date.now()-Date.parse(r.time)>60000?'上次位置':'最近位置'} {new Date(r.time).toLocaleString()} · 精度约 {Math.round(r.accuracy)} 米 · {r.lon.toFixed(5)}, {r.lat.toFixed(5)}</p>)}</details>
 }

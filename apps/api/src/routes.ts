@@ -1,3 +1,4 @@
+import {locationSnapshot,reportLocation} from './locations.js';
 import {transitRoute} from './transit.js';
 import {validateStops,roadRoute,type Stop} from './itinerary.js';
 import {fetch,ProxyAgent} from 'undici';
@@ -183,9 +184,14 @@ export class ApiController{
   const places=(await db.query('SELECT id,name,category,latitude,longitude FROM places WHERE trip_id=$1',[link.trip_id])).rows;
   return {name:trip.name,destination:trip.destination,start:trip.start_date,end:trip.end_date,places,items:trip.itinerary.map((s:Stop)=>({day:s.day,start:s.start,end:s.end,place:s.place}))};
  }
+ @Get('trips/:id/location') async sharedLocations(@Req() req:any,@Param('id') id:string){
+  const u=await this.user(req);
+  return (await locationSnapshot(id,u.token_hash))??fail('无法访问此旅行',403);
+ }
  @Post('trips/:id/location') async location(@Req() req:any,@Param('id') id:string,@Body() body:any){
   const u=await this.user(req,true);
   await this.detail(req,id);
+  if(body.action==='sample')return {accepted:await reportLocation(id,u.token_hash,body)};
   if(body.action==='stop'){
    await db.query('DELETE FROM location_shares WHERE trip_id=$1 AND user_id=$2 AND grant_id=$3',[id,u.user_id,body.grant]);
    return {ok:true};

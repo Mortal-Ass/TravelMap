@@ -29,3 +29,58 @@ label{font-size:12px;font-weight:600;letter-spacing:.2px}input,textarea{padding:
  .agenda-panel.open{max-height:65dvh;overflow:auto;overscroll-behavior:contain;padding:0 4px}
  .detail summary{padding:11px 0;cursor:pointer}.detail{min-width:0}.detail fieldset{min-width:0}
 }
+.daily-plan{padding:1rem 0 1.4rem;border-bottom:1px solid var(--line);margin-bottom:1rem}
+.daily-plan header{position:static;display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;padding:0;background:transparent;color:inherit;height:auto}
+.daily-plan header span,.daily-timeline small{font-variant-numeric:tabular-nums;font-size:.85rem}
+.daily-plan fieldset{border:0;padding:0;min-width:0}
+.daily-plan select{max-width:100%;width:100%;min-height:42px}
+.daily-plan .daily-timeline {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 1.5rem;
+}
+.daily-plan .daily-timeline > li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  align-items: start;
+  gap: .8rem;
+  padding: 0 0 1rem;
+}
+.daily-timeline > li:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: calc(1rem - 1px);
+  top: 2rem;
+  bottom: -.8rem;
+  border-left: 2px solid var(--line);
+}
+.daily-timeline .stop-number {
+  position: relative;
+  display: grid;
+  place-items: center;
+  margin-top: .8rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: #305c49;
+  color: white;
+  font: 600 .88rem/1 system-ui;
+}
+.daily-timeline .stop-card {
+  padding: .9rem 1rem .45rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  overflow-wrap: anywhere;
+}
+.stop-card > strong {display:block;font-size:1.08rem;line-height:1.5}
+.stop-card > small {display:block;margin:.25rem 0 .35rem;font-variant-numeric:tabular-nums;color:var(--muted)}
+.daily-plan .stop-card details {border:0;padding:0}
+.daily-plan .stop-card summary {cursor:pointer;padding:.65rem 0;font-size:.82rem}
+.daily-plan .stop-card details[open] > summary {border-bottom:1px solid var(--line);margin-bottom:.75rem}
+.daily-plan .stop-card button {margin:.3rem .3rem .3rem 0}
+.daily-plan > fieldset {border:0;padding:0}
+.map-segment-picker{max-width:min(65vw,280px);padding:.5rem;border:1px solid #859d91;border-radius:.5rem;background:white;color:#243f35;font:600 13px system-ui}
+.route-stop-number{border-radius:50%;color:white;background:#213e36;border:2px solid white;text-align:center;font:bold 12px/18px system-ui;box-shadow:0 1px 4px #0005}
+.route-legend{padding:0;list-style:none}.route-legend button{display:flex;align-items:center;gap:.5rem;text-align:left}.route-legend button span{width:1.8rem;border-top-width:4px;flex:none}

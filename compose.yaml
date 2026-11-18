@@ -53,6 +53,7 @@ services:
       api: {condition: service_healthy}
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+      PUBLIC_TRAVELMAP_HOST: ${PUBLIC_TRAVELMAP_HOST:-localhost}
     ports:
       - "${BIND_IP:-127.0.0.1}:${HTTP_PORT:-8080}:80"
       - "${BIND_IP:-127.0.0.1}:${HTTPS_PORT:-8443}:443"

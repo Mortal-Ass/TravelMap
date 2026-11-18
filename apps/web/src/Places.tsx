@@ -17,7 +17,7 @@ export function Places({trip,csrf,first,last,sync,user}:{user:string,sync:number
  const [query,setQuery]=useState(''),[results,setResults]=useState<Result[]>([]),[message,setMessage]=useState(''),[tileError,setTileError]=useState(false);
  const [revision,setRevision]=useState(0);
  const requestId=useRef(crypto.randomUUID());
- const [panel,setPanel]=useState(false);
+
  const [filter,setFilter]=useState('全部');
  const visible=places.filter(p=>filter==='全部'||p.category===filter);
  const base='/api/trips/'+trip;
@@ -65,11 +65,11 @@ export function Places({trip,csrf,first,last,sync,user}:{user:string,sync:number
  <p role="status">{message}</p>{results.map((r,i)=><button key={i} onClick={()=>{setDraft({...blank,name:r.name,latitude:r.latitude,longitude:r.longitude});setResults([]);setMessage('')}}>{r.address}</button>)}
  <div ref={host} style={{height:360}} aria-label="旅行地点地图"/>
  {tileError&&<p>部分底图瓦片加载失败，请检查网络或地图服务。</p>}
- <small>点击地图添加地点 · 搜索数据 © OpenStreetMap contributors</small></div><div className="atlas-plan"><div className="atlas-heading"><h3>已存地点</h3><select aria-label="筛选地点类型" value={filter} onChange={e=>setFilter(e.target.value)}>{["全部",...Object.keys(icons)].map(c=><option key={c}>{c}</option>)}</select></div><div className="place-list">
+ <small>点击地图添加地点 · 搜索数据 © OpenStreetMap contributors</small></div><div className="atlas-plan"><Itinerary sync={sync} key={revision} base={base} csrf={csrf} first={first} last={last} places={places} map={map.current}/><div className="atlas-heading"><h3>已存地点</h3><select aria-label="筛选地点类型" value={filter} onChange={e=>setFilter(e.target.value)}>{["全部",...Object.keys(icons)].map(c=><option key={c}>{c}</option>)}</select></div><div className="place-list">
  
  {visible.map(p=><button key={p.id} aria-pressed={draft?.id===p.id} onClick={()=>setDraft(p)}>{icons[p.category]} {p.name}</button>)}
  {!visible.length&&<small>暂无匹配地点</small>}</div>{draft&&<form onSubmit={e=>{e.preventDefault();void save()}}><label>地点名称<input required maxLength={180} value={draft.name} onChange={e=>setDraft({...draft,name:e.target.value})}/></label>
  <label>类别<select value={draft.category} onChange={e=>setDraft({...draft,category:e.target.value})}>{Object.keys(icons).map(c=><option key={c}>{c}</option>)}</select></label>
  <label>备注<textarea maxLength={2000} value={draft.notes} onChange={e=>setDraft({...draft,notes:e.target.value})}/></label>
- <p>经度 {draft.longitude.toFixed(5)} · 纬度 {draft.latitude.toFixed(5)}</p><button className="primary">保存地点</button></form>}<LocationPanel user={user} sync={sync} trip={trip} csrf={csrf} map={map.current}/><GuideImport base={base} csrf={csrf} first={first} last={last} places={places} map={map.current} onDone={()=>setRevision(n=>n+1)}/><button className="agenda-toggle" aria-expanded={panel} onClick={()=>setPanel(!panel)}>{panel?"收起每日行程":"展开每日行程"}</button><div className={panel?"agenda-panel open":"agenda-panel"}><Itinerary sync={sync} key={revision} base={base} csrf={csrf} first={first} last={last} places={places} map={map.current}/></div></div></section>
+ <p>经度 {draft.longitude.toFixed(5)} · 纬度 {draft.latitude.toFixed(5)}</p><button className="primary">保存地点</button></form>}<LocationPanel user={user} sync={sync} trip={trip} csrf={csrf} map={map.current}/><GuideImport base={base} csrf={csrf} first={first} last={last} places={places} map={map.current} onDone={()=>setRevision(n=>n+1)}/></div></section>
 }
