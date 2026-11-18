@@ -1,0 +1,10 @@
+BEGIN;
+CREATE TABLE IF NOT EXISTS schema_migrations(version text PRIMARY KEY);
+CREATE TABLE users(id uuid PRIMARY KEY, email text NOT NULL UNIQUE, password_hash text NOT NULL, nickname text NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE sessions(token_hash text PRIMARY KEY, user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, expires_at timestamptz NOT NULL, csrf_token text NOT NULL);
+CREATE INDEX sessions_expiry ON sessions(expires_at);
+CREATE TABLE trips(id uuid PRIMARY KEY, name text NOT NULL, destination text NOT NULL, start_date date NOT NULL, end_date date NOT NULL, timezone text NOT NULL DEFAULT 'Asia/Shanghai', description text NOT NULL DEFAULT '', archived boolean NOT NULL DEFAULT false, version integer NOT NULL DEFAULT 1, created_at timestamptz NOT NULL DEFAULT now(), CHECK(end_date >= start_date));
+CREATE TABLE trip_members(trip_id uuid NOT NULL REFERENCES trips(id) ON DELETE CASCADE, user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, role text NOT NULL CHECK(role IN ('owner','admin','editor','viewer')), PRIMARY KEY(trip_id,user_id));
+CREATE INDEX member_user ON trip_members(user_id,trip_id);
+INSERT INTO schema_migrations VALUES ('001');
+COMMIT;

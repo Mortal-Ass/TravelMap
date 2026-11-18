@@ -1,0 +1,22 @@
+{$SITE_ADDRESS:localhost} {
+ encode gzip
+ log {
+  format filter {
+   wrap json
+   fields {
+    request>uri delete
+    request>headers delete
+    resp_headers delete
+   }
+  }
+ }
+ handle /api/* {
+  header Cache-Control no-store
+  reverse_proxy api:3001
+ }
+ handle {
+  root * /srv
+  try_files {path} /index.html
+  file_server
+ }
+}
